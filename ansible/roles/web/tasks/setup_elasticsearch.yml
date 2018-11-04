@@ -1,0 +1,35 @@
+---
+- name: Installing jdk
+  apt: name=default-jdk state=installed
+
+- name: Check if my_package is installed
+  command: dpkg-query -W elasticsearch
+  register: my_package_check_deb
+  failed_when: my_package_check_deb.rc > 1
+  changed_when: my_package_check_deb.rc == 1
+
+- name: Create directory for elasticsearch
+  file: state=directory path="/home/elasticsearch"
+  when: my_package_check_deb.rc == 1
+
+- name: Download elasicsearch
+  get_url: url={{ elasticsearch_url }} dest=/home/elasticsearch/
+  when: my_package_check_deb.rc == 1
+  sudo: true
+
+- name: Install elasticsearch
+  apt: deb="/home/elasticsearch/{{ elasticsearch_name }}.deb"
+  sudo: true
+  when: my_package_check_deb.rc == 1
+ 
+- name: reload daemon
+  command: systemctl daemon-reload
+  sudo: true
+
+- name: elasticsearch enable
+  command: systemctl enable elasticsearch.service
+  sudo: true
+ 
+- name: elasticsearch start
+  command: systemctl start elasticsearch.service
+  sudo: true
